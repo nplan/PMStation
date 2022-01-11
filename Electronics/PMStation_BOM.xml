@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="air_monitoring_station_BOM.xsl"?>
+<!DOCTYPE GRID[
+  <!ELEMENT GRID (BANDS, COLUMNS, ROWS*)>
+  <!ATTLIST GRID ExportVersion CDATA #REQUIRED>
+  <!ELEMENT BANDS (BAND*)>
+  <!ELEMENT BAND EMPTY>
+  <!ATTLIST BAND Index CDATA #REQUIRED>
+  <!ATTLIST BAND Caption CDATA #IMPLIED>
+  <!ELEMENT COLUMNS (COLUMN*)>
+  <!ELEMENT COLUMN EMPTY>
+  <!ATTLIST COLUMN Name CDATA #REQUIRED>
+  <!ATTLIST COLUMN Caption CDATA #IMPLIED>
+  <!ATTLIST COLUMN Index CDATA #REQUIRED>
+  <!ATTLIST COLUMN BandIndex CDATA #REQUIRED>
+  <!ATTLIST COLUMN RowIndex CDATA #REQUIRED>
+  <!ATTLIST COLUMN ColIndex CDATA #REQUIRED>
+  <!ATTLIST COLUMN Width CDATA #IMPLIED>
+  <!ELEMENT GROUP (GROUP*, ROW*)>
+  <!ATTLIST GROUP GroupText CDATA #IMPLIED>
+  <!ELEMENT ROWS (ROW*)>
+  <!ELEMENT ROW EMPTY>
+  <!ATTLIST ROW Comment CDATA #IMPLIED>
+  <!ATTLIST ROW Description CDATA #IMPLIED>
+  <!ATTLIST ROW Designator CDATA #IMPLIED>
+  <!ATTLIST ROW Footprint CDATA #IMPLIED>
+  <!ATTLIST ROW LibRef CDATA #IMPLIED>
+  <!ATTLIST ROW Quantity CDATA #IMPLIED>
+]>
+<GRID ExportVersion="1.0">
+  <BANDS>
+    <BAND Index="0" Caption="" />
+  </BANDS>
+  <COLUMNS>
+    <COLUMN Name="Comment" Caption="Comment" Index="0" BandIndex="0" RowIndex="0" ColIndex="0" Width="120" />
+    <COLUMN Name="Description" Caption="Description" Index="1" BandIndex="0" RowIndex="0" ColIndex="1" Width="120" />
+    <COLUMN Name="Designator" Caption="Designator" Index="2" BandIndex="0" RowIndex="0" ColIndex="2" Width="120" />
+    <COLUMN Name="Footprint" Caption="Footprint" Index="3" BandIndex="0" RowIndex="0" ColIndex="3" Width="120" />
+    <COLUMN Name="LibRef" Caption="LibRef" Index="4" BandIndex="0" RowIndex="0" ColIndex="4" Width="120" />
+    <COLUMN Name="Quantity" Caption="Quantity" Index="5" BandIndex="0" RowIndex="0" ColIndex="5" Width="120" />
+  </COLUMNS>
+  <ROWS>
+    <ROW Comment="C3216X5R1C106K160AA" Description="Multilayer Ceramic Capacitors 10uF ±10% 16V X5R SMD 1206" Designator="C100, C102, C103, C104, C106" Footprint="FP-C3216-160-0_2-IPC_B" LibRef="CMP-08246-003443-1" Quantity="5" />
+    <ROW Comment="CL10B104KB8NNNC" Description="Multi-layer Ceramic Capacitor, -55 to 125 degC, 2-Pin SMD (0603), RoHS, Tape and Reel" Designator="C101, C105, C107, C108" Footprint="SAMS-C0603-2_M" LibRef="CMP-2000-05332-1" Quantity="4" />
+    <ROW Comment="6 pin AWG30 direct solder connector" Description="" Designator="CN1_ADP1, CN1_ADP2, CN1_ADP3, CN100, CN101, CN102" Footprint="5 pin AWG30 direct solder connector" LibRef="6 pin AWG30 direct solder connector" Quantity="6" />
+    <ROW Comment="B220A-13-F" Description="DIODE SCHOTTKY 20V 2A SMA" Designator="D100" Footprint="FP-SMA-MFG" LibRef="CMP-12790-000072-1" Quantity="1" />
+    <ROW Comment="0443001.DR." Description="FUSE, SMD, 1A, SLOW BLOW" Designator="F100" Footprint="FP-3403_0163_11-MFG" LibRef="CMP-26293-000009-1" Quantity="1" />
+    <ROW Comment="62301021021" Description="SMT Vertical Socket Header WR-PHD, Pitch 1.27 mm, Dual Row, 10 pins" Designator="J1_ADP1, J1_ADP2, J1_ADP3" Footprint="62301021021" LibRef="CMP-1502-01188-1" Quantity="3" />
+    <ROW Comment="691102710003" Description="Series 102 - 5.00 mm Horizontal Entry Modular with Pressure Clamp WR-TBL, 3 pin" Designator="J100" Footprint="691102710003" LibRef="CMP-1502-03259-1" Quantity="1" />
+    <ROW Comment="USB4085-GF-A" Description="CONN RCPT USB2.0 TYPEC 16POS" Designator="J101" Footprint="FP-USB4085-GF-A-MFG" LibRef="CMP-196119-000001-1" Quantity="1" />
+    <ROW Comment="150080SS75000" Description="SMD mono-color Chip LED, WL-SMCW, Super Red" Designator="LED100" Footprint="0805_A" LibRef="CMP-1426-00010-1" Quantity="1" />
+    <ROW Comment="ESP32-WROOM-32" Description="RX TXRX MOD WIFI SURFACE MOUNT" Designator="MD100" Footprint="FP-ESP32-WROOM-32-MFG" LibRef="CMP-194065-000008-1" Quantity="1" />
+    <ROW Comment="22-23-2031" Description="Male Header, Pitch 2.54 mm, 1 x 3 Position, Height 8.18 mm, Tail Length 3.56 mm, RoHS, Bulk" Designator="P100" Footprint="MOLX-22-23-2031_V" LibRef="CMP-2000-05242-1" Quantity="1" />
+    <ROW Comment="Header 4" Description="Header, 4-Pin" Designator="P101" Footprint="HDR1X4" LibRef="Header 4" Quantity="1" />
+    <ROW Comment="Header 5" Description="Header, 5-Pin" Designator="P102" Footprint="HDR1X5" LibRef="Header 5" Quantity="1" />
+    <ROW Comment="Header 6" Description="Header, 6-Pin" Designator="P103" Footprint="HDR1X6" LibRef="Header 6" Quantity="1" />
+    <ROW Comment="BOOT" Description="Header, 2-Pin" Designator="P104" Footprint="HDR1X2" LibRef="Header 2" Quantity="1" />
+    <ROW Comment="PMS70003" Description="PM1/2.5/10 airborne particle sensor. Silk tape mounting pattern only. Needs sepparate data connector." Designator="PM100, PM101, PM102" Footprint="PMS7003 standing" LibRef="PMS70003" Quantity="3" />
+    <ROW Comment="HLK-PM01" Description="HLK-PM01 compact AC-DC power supply 5V 600mA" Designator="PS100" Footprint="HLK-PMxx" LibRef="HLK-PM01" Quantity="1" />
+    <ROW Comment="AO3400A" Description="MOSFET N-CH 30V 5.7A SOT23" Designator="Q100" Footprint="FP-SOT23-MFG" LibRef="CMP-83955-000006-1" Quantity="1" />
+    <ROW Comment="MMBT3904" Description="General Purpose Transistor, NPN Silicon, 3-Pin SOT-23, Pb-Free, Tape and Reel" Designator="Q101, Q102" Footprint="ONSC-SOT-23-3-318-08_V" LibRef="CMP-1048-00631-1" Quantity="2" />
+    <ROW Comment="10k" Description="Chip Resistor, 10 KOhm, +/- 1%, 0.125 W, -55 to 155 degC, 0805 (2012 Metric), RoHS, Tape and Reel" Designator="R100, R103, R114, R116" Footprint="RESC2013X60X35NL10T20" LibRef="CMP-1659-00013-4" Quantity="4" />
+    <ROW Comment="ERZE07A561" Description="VARISTOR 560V 2.5KA DISC 9MM" Designator="R101" Footprint="FP-ERZE07A561-MFG" LibRef="CMP-05593-000004-1" Quantity="1" />
+    <ROW Comment="CRCW08055K10FKEA" Description="RES Thick Film, 5.1kΩ, 1%, 0.125W, 100ppm/°C, 0805" Designator="R102, R104, R105, R106, R107, R108, R109, R110, R111, R112, R113, R115" Footprint="FP-CRCW0805-e3-MFG" LibRef="CMP-2001-04024-2" Quantity="12" />
+    <ROW Comment="RC0805FR-0710RL" Description="Chip Resistor, 10 Ohm, +/- 1%, 0.125 W, -55 to 155 degC, 0805 (2012 Metric), RoHS, Tape and Reel" Designator="R117" Footprint="RESC2013X60X35ML10T20" LibRef="CMP-2100-03670-1" Quantity="1" />
+    <ROW Comment="PTS645SM43SMTR92LFS" Description="SWITCH TACTILE SPST-NO 0.05A 12V" Designator="SW100" Footprint="FP-PTS645SM43SMTR92LFS-MFG" LibRef="CMP-2000-05160-2" Quantity="1" />
+    <ROW Comment="HTU21D" Description="Digital Relative Humidity sensor with Temperature output" Designator="U100, U102" Footprint="FP-HTU21D-IPC_B" LibRef="CMP-03340-000003-1" Quantity="2" />
+    <ROW Comment="LD1117S33TR" Description="Fixed Low Drop Positive Voltage Regulator, 3.3V, 4-Pin SOT-223, Tape and Reel" Designator="U101" Footprint="SOT-223_L" LibRef="CMP-0244-00310-1" Quantity="1" />
+    <ROW Comment="CP2102-GMR" Description="Single-Chip USB to URAT Bridge, 3.3 V, -40 to 85 degC, 28-Pin QFN, RoHS, Tape and Reel" Designator="U103" Footprint="SLAB-QFN-28-3125x3125TP_M" LibRef="CMP-2000-04924-1" Quantity="1" />
+  </ROWS>
+</GRID>

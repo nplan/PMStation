@@ -1,0 +1,35 @@
+How to install as a service started at boot using systemd:
+
+1. Place at /home/<user>/pms_logger.py
+
+2. Run sudo chmod +x /home/<user>/pms_logger.py
+
+3. Create file /lib/systemd/system/pms_logger.service with contents:
+
+        [Unit]
+        Description=PMS Logger
+        After=multi-user.target
+
+        [Service]
+        Type=idle
+        User=homeassistant
+        ExecStart=python3 /home/<user>//pms_logger.py
+        Restart=always
+        RestartSec=30
+
+        [Install]
+        WantedBy=multi-user.target
+
+4. Run sudo chmod 644 /lib/systemd/system/pms_logger.service
+
+5. Run sudo systemctl daemon-reload
+
+6. Run sudo systemctl enable pms_logger.service
+
+7. Run sudo systemctl start pms_logger.service
+
+8. Install complete! Logger will now start at boot and restart within 30 sec on any errors.
+
+Check service status: sudo systemctl status pms_logger.service
+
+View pms_logger service log: sudo journalctl -f -u pms_logger.service
