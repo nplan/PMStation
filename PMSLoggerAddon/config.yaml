@@ -1,0 +1,24 @@
+name: "PMSLogger"
+description: "Addon for logging PMS data to sqlite database."
+version: "1.1.0"
+slug: "pms_logger"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+map:
+  - share:rw
+options:
+  host: "localhost"
+  port: 1883
+  user: ""
+  password: ""
+  topic: "PMStation/raw"
+schema:
+  host: str
+  port: int
+  user: str
+  password: str
+  topic: str

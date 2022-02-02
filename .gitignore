@@ -23,7 +23,7 @@ Project\ Outputs*/
 
 ### C++ ###
 # Prerequisites
-*.d
+#*.d
 
 # Compiled Object files
 *.slo

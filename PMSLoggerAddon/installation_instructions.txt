@@ -1,0 +1,10 @@
+1. Copy folder PMSLoggerAddon to /addons on Home Assistant OS filesystem
+2. In homeasistant frontend go to Configuration > Add-ons and click ADD-ON-STORE in bottom right
+3. Click menu in top right and select Check for updates
+4. PMSLogger should apear in section Local add-ons. Click it.
+5. Click install and wait a few minutes
+6. Go to Configuration tab and fill in MQTT parameters. Click SAVE.
+7. Back on Info tab click START.
+8. Check Log tab to see if it started sucessfuly
+9. On Info tab turn on Start on boot and Watchdog options
+10. All done!

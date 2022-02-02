@@ -1,0 +1,33 @@
+#!/usr/bin/with-contenv bashio
+
+mkdir -p /share/PMSLogger
+
+HOST=$(bashio::config 'host')
+PORT=$(bashio::config 'port')
+USER=$(bashio::config 'user')
+PASSWORD=$(bashio::config 'password')
+TOPIC=$(bashio::config 'topic')
+
+# HOST=192.168.1.112
+# PORT=1883
+# USER=""
+# PASSWORD=""
+# TOPIC=home/PMStation/raw
+
+echo "Params from config:"
+echo "Host: ${HOST}"
+echo "Port: ${PORT}"
+echo "User: ${USER}"
+echo "Password: ${PASSWORD}"
+echo "Topic: ${TOPIC}"
+
+echo "Starting python script..."
+
+exec python3 /pms_logger.py \
+--host "${HOST}" \
+--port "${PORT}" \
+--user "${USER}" \
+--password "${PASSWORD}" \
+--topic "${TOPIC}" \
+--db "/share/PMSLogger/pms.db" \
+--log "/share/PMSLogger/pms.log"
