@@ -1,58 +1,82 @@
-import paho.mqtt.client as mqtt
-from time import sleep, time
-from peewee import Model, IntegerField, FloatField, DateTimeField, SqliteDatabase
-from playhouse.sqlite_ext import JSONField
-import os
 import datetime
 import logging
 import json
+import argparse
+from secrets import token_hex
+import sys
 
-ip = "192.168.1.112"
-port = 1883
-topic = "home/PMStation/raw"
+from peewee import Model, IntegerField, FloatField, DateTimeField, SqliteDatabase
+from playhouse.sqlite_ext import JSONField
+import paho.mqtt.client as mqtt
 
-directory = os.path.join(os.path.expanduser("~"), "PMS_data")
-os.makedirs(directory, exist_ok=True)
-db_path = os.path.join(directory, "pms.db")
-log_path = os.path.join(directory, "pms.log")
+HOST = "localhost"
+PORT = 1883
+USER = None
+PASSWORD = None
+TOPIC = "home/PMStation/raw"
+DB_PATH = "pms.db"
+LOG_PATH = "pms.log"
 
-# db_path = "pms_log.db"
-db = SqliteDatabase(db_path)
+def main():
+    parser = argparse.ArgumentParser(description="Logs PMS MQTT data to sqlite database.")
+    parser.add_argument("--host", help="MQTT broker host", default=HOST)
+    parser.add_argument("--port", help="MQTT broker port", type=int, default=PORT)
+    parser.add_argument("--user", help="MQTT broker user", default=USER)
+    parser.add_argument("--password", help="MQTT broker password", default=PASSWORD)
+    parser.add_argument("--topic", help="MQTT topic with raw json data", default=TOPIC)
+    parser.add_argument("--db", help="Database path", default=DB_PATH)
+    parser.add_argument("--log", help="Log path", default=LOG_PATH)
+    parser.add_argument("--debug", help="verbose debug mode", action="store_true")
+    parser.add_argument("--test", help="print params and quit", action="store_true")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Input Parameters:")
+        print(f"Host: {args.host}")
+        print(f"Port: {args.port}")
+        print(f"User: {args.user}")
+        print(f"Password: {args.password}")
+        print(f"Topic: {args.topic}")
+        print(f"DB: {args.db}")
+        print(f"Log: {args.log}")
+        print("Exiting.")
+        sys.exit(0)
+
+    db = SqliteDatabase(args.db)
 
 
-class PMSReading(Model):
+    class PMSReading(Model):
 
-    pm1 = IntegerField()
-    pm2_5 = IntegerField()
-    pm10 = IntegerField()
-    temperature = FloatField()
-    humidity = FloatField()
-    pressure = FloatField()
-    raw = JSONField()
-    time = DateTimeField(default=datetime.datetime.utcnow)
+        pm1 = IntegerField()
+        pm2_5 = IntegerField()
+        pm10 = IntegerField()
+        temperature = FloatField()
+        humidity = FloatField()
+        pressure = FloatField()
+        raw = JSONField()
+        time = DateTimeField(default=datetime.datetime.utcnow)
 
-    class Meta:
-        database = db
+        class Meta:
+            database = db
 
 
-if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     console = logging.StreamHandler()
-    file = logging.FileHandler(log_path)
+    file = logging.FileHandler(args.log)
     formatter = logging.Formatter(fmt='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
     console.setFormatter(formatter)
     file.setFormatter(formatter)
     logger.addHandler(console)
     logger.addHandler(file)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     db.connect()
     db.create_tables([PMSReading], safe=True)
 
     def on_connect(client, userdata, flags, rc):
         logger.info("MQTT client connected")
-        client.subscribe(topic, qos=2)
+        client.subscribe(args.topic, qos=2)
 
     def on_msg(client, userdata, message):
         logger.debug("Received message on topic '{}'".format(message.topic))
@@ -78,10 +102,16 @@ if __name__ == '__main__':
             return
         reading.save()
 
-    client = mqtt.Client("PMStationLogger1")
+    client = mqtt.Client(f"PMSLogger_{token_hex(3)}")
+    if args.user and args.password:
+        client.username_pw_set(args.user, args.password)
     client.on_message = on_msg
     client.on_connect = on_connect
 
     client.enable_logger(logger)
-    client.connect_async(ip, port)
+    client.connect_async(args.host, args.port)
     client.loop_forever(retry_first_connection=True)
+
+
+if __name__ == '__main__':
+    main()

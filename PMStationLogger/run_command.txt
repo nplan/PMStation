@@ -1,0 +1,7 @@
+python3 pms_logger.py \
+--host 192.168.1.112 \
+--port 1883 \
+--topic "home/PMStation/raw" \
+--db data111.db \
+--log loggg.txt \
+--debug
