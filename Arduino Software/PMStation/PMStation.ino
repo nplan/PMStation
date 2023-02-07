@@ -1,3 +1,5 @@
+// board type: ESP32 Dev Module
+
 #include <SoftwareSerial.h>
 #include <HardwareSerial.h>
 #include <WiFi.h>
@@ -70,8 +72,6 @@ const float humd_range_max = 100;
 // BMP280 sensors
 Adafruit_BMP280 bmp280_1(&i2c_1);
 
-const int fan_speed = 220;
-
 // Data variables
 const int nrSamples = 60;
 RunningAverage pm10_1_avg(nrSamples);
@@ -125,10 +125,8 @@ void setup() {
   digitalWrite(LED_BUILTIN, HIGH);
   delay(500);
   digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(FAN_PWM_PIN, HIGH);
 
-  ledcSetup(1, 100000, 8);
-  ledcAttachPin(FAN_PWM_PIN, 1);
-  ledcWrite(1, fan_speed);
   
   Serial.begin(115200);
   Serial.println("###### PMStation Active ######");
