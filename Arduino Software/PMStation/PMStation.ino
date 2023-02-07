@@ -1,4 +1,5 @@
 // board type: ESP32 Dev Module
+// ESP32 arduino core == v2.0.0 (later versions do not work)
 
 #include <SoftwareSerial.h>
 #include <HardwareSerial.h>
@@ -118,7 +119,7 @@ char pressure_avg_chr [20];
 // Update sensor values interval
 const unsigned long update_interval = 1 * 1000L;
 unsigned long last_update_time = 0;
-
+unsigned long last_publish_time = 0;
 
 void setup() {
   esp_task_wdt_init(120, true);
@@ -165,15 +166,16 @@ void loop() {
   wifi_handler_loop();
   mqtt_handler_loop();
   client.loop();
-  
-  pms1.read(pms1_data);
-  pms2.read(pms2_data);
-  pms3.read(pms3_data);
 
-  if (millis() - last_update_time > update_interval) {
-    esp_task_wdt_reset();
+  bool r1, r2, r3;
+  r1 = pms1.read(pms1_data);
+  r2 = pms2.read(pms2_data);
+  r3 = pms3.read(pms3_data);
+  
+  if (millis() - last_update_time >= update_interval) {
     last_update_time = millis();
-    
+    esp_task_wdt_reset();
+
     // PM 1.0 um
     pm10_1_avg.addValue(pms1_data.PM_AE_UG_1_0);
     pm10_2_avg.addValue(pms2_data.PM_AE_UG_1_0);
@@ -226,7 +228,7 @@ void loop() {
     pressure_avg.addValue(pressure);
   }
 
-  if (millis() - last_publish_time > publish_interval) {
+  if (millis() - last_publish_time >= publish_interval) {
     last_publish_time = millis();
     print_all_data();
 
