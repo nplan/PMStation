@@ -10,6 +10,7 @@
 #include <Adafruit_BMP280.h>
 #include <RunningAverage.h>
 #include <ArduinoJson.h>
+#include <esp_task_wdt.h>
 
 #include "config.h"
 
@@ -120,6 +121,9 @@ unsigned long last_update_time = 0;
 
 
 void setup() {
+  esp_task_wdt_init(120, true);
+  esp_task_wdt_add(NULL);
+  
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(FAN_PWM_PIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
@@ -167,6 +171,7 @@ void loop() {
   pms3.read(pms3_data);
 
   if (millis() - last_update_time > update_interval) {
+    esp_task_wdt_reset();
     last_update_time = millis();
     
     // PM 1.0 um
@@ -272,6 +277,12 @@ void loop() {
       char buffer[1024];
       size_t n = serializeJson(doc, buffer);
       client.publish(raw_topic, (uint8_t*)buffer, n, false);
+    }
+    char buffer[40];
+    sprintf(buffer, "MIN FREE HEAP: %d", ESP.getMinFreeHeap());
+    Serial.println(buffer);
+    if (ESP.getMinFreeHeap() < 20000UL) {
+      ESP.restart();
     }
   }
   
