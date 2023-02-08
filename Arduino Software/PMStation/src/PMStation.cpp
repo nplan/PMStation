@@ -1,5 +1,6 @@
 // board type: ESP32 Dev Module
 // ESP32 arduino core == v2.0.0 (later versions do not work)
+#include <Arduino.h>
 
 #include <SoftwareSerial.h>
 #include <HardwareSerial.h>
@@ -12,6 +13,8 @@
 #include <RunningAverage.h>
 #include <ArduinoJson.h>
 #include <esp_task_wdt.h>
+#include <WiFiManager.h>
+#include <Preferences.h>
 
 #include "config.h"
 
@@ -48,6 +51,19 @@ WiFiClient wifi_client;
 PubSubClient client(wifi_client);
 bool wifi_available = false;
 bool mqtt_available = false;
+
+// WiFi manager
+WiFiManager wm;
+static WiFiManagerParameter mqtt_server_param("mqtt_server", "MQTT Server", "", 50);
+static WiFiManagerParameter mqtt_port_param("mqtt_port", "MQTT Port", "", 6);
+static WiFiManagerParameter mqtt_user_param("mqtt_user", "MQTT User", "", 50);
+static WiFiManagerParameter mqtt_password_param("mqtt_password", "MQTT Password", "", 50);
+
+Preferences prefs;
+String mqtt_server = "";
+int32_t mqtt_port = 0;
+String mqtt_user = "";
+String mqtt_password = "";
 
 // PM sensors
 PMS pms1(pms1_ser);
@@ -121,6 +137,179 @@ const unsigned long update_interval = 1 * 1000L;
 unsigned long last_update_time = 0;
 unsigned long last_publish_time = 0;
 
+void save_prefs() {
+  prefs.begin("mqtt");
+  prefs.putString("mqtt_srv", mqtt_server);
+  prefs.putUInt("mqtt_port", mqtt_port);
+  prefs.putString("mqtt_user", mqtt_user);
+  prefs.putString("mqtt_pass", mqtt_password);
+  prefs.end();
+}
+
+void read_prefs() {
+  prefs.begin("mqtt");
+  mqtt_server = prefs.getString("mqtt_srv");
+  mqtt_port = prefs.getUInt("mqtt_port");
+  mqtt_user = prefs.getString("mqtt_user");
+  mqtt_password = prefs.getString("mqtt_pass");
+  prefs.end();
+}
+
+void param_callback() {
+  mqtt_server = mqtt_server_param.getValue();
+  mqtt_port = String(mqtt_port_param.getValue()).toInt();
+  mqtt_user = mqtt_user_param.getValue();
+  mqtt_password = mqtt_password_param.getValue();
+  save_prefs();
+}
+
+void average_3_values(float val1, float val2, float val3, float &avg_out, float &max_err) {
+  // exclude outlier and average remaining two
+  float avg_all = (val1 + val2 + val3) / 3.0;
+  float err1 = val1 - avg_all;
+  float err2 = val2 - avg_all;
+  float err3 = val3 - avg_all;
+
+  if (err1 > err2 && err1 > err3) {
+    avg_out = (val2 + val3) / 2.0;
+    max_err = err1;
+  }
+  else if (err2 > err1 && err2 > err3) {
+    avg_out = (val1 + val3) / 2.0;
+    max_err = err2;
+  }
+  else {
+    avg_out = (val1 + val2) / 2.0;
+    max_err = err3;
+  }
+}
+
+void average_2_values(float val1, float val2, float &avg_out, float &delta) {
+  avg_out = (val1 + val2) / 2.0;
+  delta = val1 - val2;
+}
+
+
+void print_all_data() {
+  Serial.println("######## DATA ########"); Serial.println();
+  Serial.println("[PM 1.0 (ug/m3)]");
+  Serial.print("All sensors:"); Serial.print("\t");
+  Serial.print(pm10_1_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.print(pm10_2_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.println(pm10_3_avg.getFastAverage(), 0);
+  Serial.print("Average:"); Serial.print("\t");
+  Serial.println(pm10_avg, 1);
+  Serial.print("Delta:"); Serial.print("\t");
+  Serial.println(pm10_delta, 1); Serial.println();
+
+  Serial.println("[PM 2.5 (ug/m3)]");
+  Serial.print("All sensors:"); Serial.print("\t");
+  Serial.print(pm25_1_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.print(pm25_2_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.println(pm25_3_avg.getFastAverage(), 0);
+  Serial.print("Average:"); Serial.print("\t");
+  Serial.println(pm25_avg, 1);
+  Serial.print("Delta:"); Serial.print("\t");
+  Serial.println(pm25_delta, 1); Serial.println();
+
+  Serial.println("[PM 10.0 (ug/m3)]");
+  Serial.print("All sensors:"); Serial.print("\t");
+  Serial.print(pm100_1_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.print(pm100_2_avg.getFastAverage(), 0); Serial.print("\t");
+  Serial.println(pm100_3_avg.getFastAverage(), 0);
+  Serial.print("Average:"); Serial.print("\t");
+  Serial.println(pm100_avg, 1);
+  Serial.print("Delta:"); Serial.print("\t");
+  Serial.println(pm100_delta, 1); Serial.println();
+
+  Serial.println("[Temperature (*C)]");
+  Serial.print("All sensors:"); Serial.print("\t");
+  Serial.print(temperature_1_avg.getFastAverage(), 1); Serial.print("\t");
+  Serial.println(temperature_2_avg.getFastAverage(), 1);
+  Serial.print("Average: "); Serial.print("\t");
+  Serial.println(temperature_avg, 1);
+  Serial.print("Delta:"); Serial.print("\t");
+  Serial.println(temperature_delta, 1); Serial.println();
+
+  Serial.println("[Humidity (%)]");
+  Serial.print("All sensors:"); Serial.print("\t");
+  Serial.print(humidity_1_avg.getFastAverage(), 1); Serial.print("\t");
+  Serial.println(humidity_2_avg.getFastAverage(), 1);
+  Serial.print("Average:"); Serial.print("\t");
+  Serial.println(humidity_avg, 1);
+  Serial.print("Delta:"); Serial.print("\t");
+  Serial.println(humidity_delta, 1); Serial.println();
+
+  Serial.println("[Pressure (hPa)]");
+  Serial.println(pressure_avg.getFastAverage(), 0);
+  Serial.println();
+}
+
+void wifi_handler_loop() {
+  static uint8_t ctrl = 0;
+  static uint32_t reconnect_time = 0;
+  static const uint32_t connect_timeout = 20000;
+  switch (ctrl) {
+    case 0: // check wifi status
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("Reconnecting WiFi...");
+        wifi_available = false;
+        WiFi.disconnect(true);
+        WiFi.begin();
+        reconnect_time = millis();
+        ctrl = 1;
+      } else {
+        wifi_available = true;
+      }
+      break;
+    case 1: // wait for connection or timoeut
+      if (WiFi.status() == WL_CONNECTED) {
+        wifi_available = true;
+        Serial.println("WiFi connected.");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+        ctrl = 0;
+      }
+      else if (millis() - reconnect_time > connect_timeout) {
+        ctrl = 0;
+      }
+      break;
+  }
+}
+
+void mqtt_handler_loop() {
+  static uint8_t ctrl = 0;
+  static uint32_t reconnect_time = 20000;
+  static const uint32_t connect_timeout = 20000;
+  switch (ctrl) {
+    case 0: // check wifi status
+      if (wifi_available && !client.connected() && millis() - reconnect_time > connect_timeout) {
+        Serial.println("Reconnecting MQTT...");
+        mqtt_available = false;
+        if (mqtt_user.length() == 0 && mqtt_password.length() == 0) {
+          client.connect(client_id);
+        } else {
+          client.connect(client_id, mqtt_user.c_str(), mqtt_password.c_str());
+        }
+        reconnect_time = millis();
+        ctrl = 1;
+      }
+      break;
+    case 1: // wait for connection or timoeut
+      if (client.connected()) {
+        mqtt_available = true;
+        Serial.println("MQTT connected.");
+        ctrl = 0;
+      }
+      else if (millis() - reconnect_time > connect_timeout) {
+        Serial.print("MQTT connection failed, rc=");
+        Serial.println(client.state());
+        ctrl = 0;
+      }
+      break;
+  }
+}
+
 void setup() {
   esp_task_wdt_init(120, true);
   esp_task_wdt_add(NULL);
@@ -132,6 +321,7 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
   digitalWrite(FAN_PWM_PIN, HIGH);
 
+  read_prefs();
   
   Serial.begin(115200);
   Serial.println("###### PMStation Active ######");
@@ -154,10 +344,25 @@ void setup() {
                        Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
                        Adafruit_BMP280::FILTER_X16,      /* Filtering. */
                        Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+
+  mqtt_server_param.setValue(mqtt_server.c_str(), 50);
+  mqtt_port_param.setValue(String(mqtt_port).c_str(), 6);
+  mqtt_user_param.setValue(mqtt_user.c_str(), 50);
+  mqtt_password_param.setValue(mqtt_password.c_str(), 50);
+  wm.addParameter(&mqtt_server_param);
+  wm.addParameter(&mqtt_port_param);
+  wm.addParameter(&mqtt_user_param);
+  wm.addParameter(&mqtt_password_param);
+  wm.setTitle("PMS Station");
+  wm.setSaveParamsCallback(param_callback);
+
+  bool ret;
+  ret = wm.autoConnect("PMS Station", "password");
+  if (!ret) ESP.restart();
   
   wifi_client.setTimeout(1000);
   client.setSocketTimeout(2);
-  client.setServer(mqtt_server, 1883);
+  client.setServer(mqtt_server.c_str(), mqtt_port);
   client.setBufferSize(1024);
 }
 
@@ -288,145 +493,4 @@ void loop() {
     }
   }
   
-}
-
-void average_3_values(float val1, float val2, float val3, float &avg_out, float &max_err) {
-  // exclude outlier and average remaining two
-  float avg_all = (val1 + val2 + val3) / 3.0;
-  float err1 = val1 - avg_all;
-  float err2 = val2 - avg_all;
-  float err3 = val3 - avg_all;
-
-  if (err1 > err2 && err1 > err3) {
-    avg_out = (val2 + val3) / 2.0;
-    max_err = err1;
-  }
-  else if (err2 > err1 && err2 > err3) {
-    avg_out = (val1 + val3) / 2.0;
-    max_err = err2;
-  }
-  else {
-    avg_out = (val1 + val2) / 2.0;
-    max_err = err3;
-  }
-}
-
-void average_2_values(float val1, float val2, float &avg_out, float &delta) {
-  avg_out = (val1 + val2) / 2.0;
-  delta = val1 - val2;
-}
-
-
-void print_all_data() {
-  Serial.println("######## DATA ########"); Serial.println();
-  Serial.println("[PM 1.0 (ug/m3)]");
-  Serial.print("All sensors:"); Serial.print("\t");
-  Serial.print(pm10_1_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.print(pm10_2_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.println(pm10_3_avg.getFastAverage(), 0);
-  Serial.print("Average:"); Serial.print("\t");
-  Serial.println(pm10_avg, 1);
-  Serial.print("Delta:"); Serial.print("\t");
-  Serial.println(pm10_delta, 1); Serial.println();
-
-  Serial.println("[PM 2.5 (ug/m3)]");
-  Serial.print("All sensors:"); Serial.print("\t");
-  Serial.print(pm25_1_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.print(pm25_2_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.println(pm25_3_avg.getFastAverage(), 0);
-  Serial.print("Average:"); Serial.print("\t");
-  Serial.println(pm25_avg, 1);
-  Serial.print("Delta:"); Serial.print("\t");
-  Serial.println(pm25_delta, 1); Serial.println();
-
-  Serial.println("[PM 10.0 (ug/m3)]");
-  Serial.print("All sensors:"); Serial.print("\t");
-  Serial.print(pm100_1_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.print(pm100_2_avg.getFastAverage(), 0); Serial.print("\t");
-  Serial.println(pm100_3_avg.getFastAverage(), 0);
-  Serial.print("Average:"); Serial.print("\t");
-  Serial.println(pm100_avg, 1);
-  Serial.print("Delta:"); Serial.print("\t");
-  Serial.println(pm100_delta, 1); Serial.println();
-
-  Serial.println("[Temperature (*C)]");
-  Serial.print("All sensors:"); Serial.print("\t");
-  Serial.print(temperature_1_avg.getFastAverage(), 1); Serial.print("\t");
-  Serial.println(temperature_2_avg.getFastAverage(), 1);
-  Serial.print("Average: "); Serial.print("\t");
-  Serial.println(temperature_avg, 1);
-  Serial.print("Delta:"); Serial.print("\t");
-  Serial.println(temperature_delta, 1); Serial.println();
-
-  Serial.println("[Humidity (%)]");
-  Serial.print("All sensors:"); Serial.print("\t");
-  Serial.print(humidity_1_avg.getFastAverage(), 1); Serial.print("\t");
-  Serial.println(humidity_2_avg.getFastAverage(), 1);
-  Serial.print("Average:"); Serial.print("\t");
-  Serial.println(humidity_avg, 1);
-  Serial.print("Delta:"); Serial.print("\t");
-  Serial.println(humidity_delta, 1); Serial.println();
-
-  Serial.println("[Pressure (hPa)]");
-  Serial.println(pressure_avg.getFastAverage(), 0);
-  Serial.println();
-}
-
-void wifi_handler_loop() {
-  static uint8_t ctrl = 0;
-  static uint32_t reconnect_time = 0;
-  static const uint32_t connect_timeout = 20000;
-  switch (ctrl) {
-    case 0: // check wifi status
-      if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Reconnecting WiFi...");
-        wifi_available = false;
-        WiFi.disconnect(true);
-        WiFi.begin(ssid, password);
-        reconnect_time = millis();
-        ctrl = 1;
-      }
-      break;
-    case 1: // wait for connection or timoeut
-      if (WiFi.status() == WL_CONNECTED) {
-        wifi_available = true;
-        Serial.println("WiFi connected.");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-        ctrl = 0;
-      }
-      else if (millis() - reconnect_time > connect_timeout) {
-        ctrl = 0;
-      }
-      break;
-  }
-}
-
-void mqtt_handler_loop() {
-  static uint8_t ctrl = 0;
-  static uint32_t reconnect_time = 20000;
-  static const uint32_t connect_timeout = 20000;
-  switch (ctrl) {
-    case 0: // check wifi status
-      if (wifi_available && !client.connected() && millis() - reconnect_time > connect_timeout) {
-        Serial.println("Reconnecting MQTT...");
-        mqtt_available = false;
-        client.connect(client_id);
-        reconnect_time = millis();
-        ctrl = 1;
-      }
-      break;
-    case 1: // wait for connection or timoeut
-      if (client.connected()) {
-        mqtt_available = true;
-        Serial.println("MQTT connected.");
-        ctrl = 0;
-      }
-      else if (millis() - reconnect_time > connect_timeout) {
-        Serial.print("MQTT connection failed, rc=");
-        Serial.println(client.state());
-        ctrl = 0;
-      }
-      break;
-  }
 }
